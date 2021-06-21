@@ -51,9 +51,14 @@ from .helpers import (
 )
 from .utils import weighted_choice
 from .structures import CaseInsensitiveDict
+from .config import config
+
+log_dir = config.get("log_dir", "logs")
+log_filename = config.get("request_log_filename", "myanything_request.log")
+request_log_file = "{}/{}".format(log_dir, log_filename)
 
 with open(
-    os.path.join(os.path.realpath(os.path.dirname(__file__)), "VERSION")
+        os.path.join(os.path.realpath(os.path.dirname(__file__)), "VERSION")
 ) as version_file:
     version = version_file.read().strip()
 
@@ -409,6 +414,72 @@ def view_anything(anything=None):
             "json",
         )
     )
+
+
+@app.route("/myanything", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"])
+@app.route(
+    "/myanything/<path:myanything>",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"],
+)
+def view_myanything(anything=None):
+    """Returns my anything passed in request data.
+    ---
+    tags:
+      - MyAnything
+    produces:
+      - application/json
+    responses:
+      200:
+        description: My Anything passed in request, send the request to file
+    """
+
+    requested_response = jsonify(
+        get_dict(
+            "url",
+            "args",
+            "headers",
+            "origin",
+            "method",
+            "form",
+            "data",
+            "files",
+            "json",
+        )
+    )  # type: import flask.wrappers.Response
+
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+
+    with open(request_log_file, 'w', encoding='utf-8') as fp:
+        fp.write(requested_response.get_data().decode('utf-8'))
+
+    return requested_response
+
+
+@app.route("/getmyanything", methods=["GET"])
+@app.route(
+    "/getmyanything/<path:myanything>",
+    methods=["GET"],
+)
+def view_getmyanything(anything=None):
+    """Returns my anything passed in request data.
+    ---
+    tags:
+      - MyAnything
+    produces:
+      - application/json
+    responses:
+      200:
+        description: My Anything passed in request, send the request to file
+    """
+    if not os.path.exists(request_log_file):
+        return jsonify()
+
+    with open(request_log_file, 'r', encoding='utf-8') as fp:
+        content = fp.read()
+        requested_response = json.loads(content)
+
+    return jsonify(requested_response)  # type: import flask.wrappers.Response
 
 
 @app.route("/post", methods=("POST",))
@@ -1090,7 +1161,7 @@ def digest_auth_nostale(qop=None, user="user", passwd="passwd", algorithm="MD5")
 
 @app.route("/digest-auth/<qop>/<user>/<passwd>/<algorithm>/<stale_after>")
 def digest_auth(
-    qop=None, user="user", passwd="passwd", algorithm="MD5", stale_after="never"
+        qop=None, user="user", passwd="passwd", algorithm="MD5", stale_after="never"
 ):
     """Prompts the user for authorization using Digest Auth + Algorithm.
     allow settings the stale_after argument.
@@ -1142,10 +1213,10 @@ def digest_auth(
         credentials = parse_authorization_header(authorization)
 
     if (
-        not authorization
-        or not credentials
-        or credentials.type.lower() != "digest"
-        or (require_cookie_handling and "Cookie" not in request.headers)
+            not authorization
+            or not credentials
+            or credentials.type.lower() != "digest"
+            or (require_cookie_handling and "Cookie" not in request.headers)
     ):
         response = digest_challenge_response(app, qop, algorithm)
         response.set_cookie("stale_after", value=stale_after)
@@ -1165,9 +1236,9 @@ def digest_auth(
         stale_after_value = request.cookies.get("stale_after")
 
     if (
-        "last_nonce" in request.cookies
-        and current_nonce == request.cookies.get("last_nonce")
-        or stale_after_value == "0"
+            "last_nonce" in request.cookies
+            and current_nonce == request.cookies.get("last_nonce")
+            or stale_after_value == "0"
     ):
         response = digest_challenge_response(app, qop, algorithm, True)
         response.set_cookie("stale_after", value=stale_after)
@@ -1533,9 +1604,9 @@ def range_request(numbytes):
     range_length = (last_byte_pos + 1) - first_byte_pos
 
     if (
-        first_byte_pos > last_byte_pos
-        or first_byte_pos not in xrange(0, numbytes)
-        or last_byte_pos not in xrange(0, numbytes)
+            first_byte_pos > last_byte_pos
+            or first_byte_pos not in xrange(0, numbytes)
+            or last_byte_pos not in xrange(0, numbytes)
     ):
         response = Response(
             headers={
@@ -1726,7 +1797,7 @@ def image_svg():
 def resource(filename):
     path = os.path.join(tmpl_dir, filename)
     with open(path, "rb") as f:
-      return f.read()
+        return f.read()
 
 
 @app.route("/xml")
