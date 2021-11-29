@@ -418,7 +418,7 @@ def view_anything(anything=None):
 
 @app.route("/myanything", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"])
 @app.route(
-    "/myanything/<path:myanything>",
+    "/myanything/<path:anything>",
     methods=["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"],
 )
 def view_myanything(anything=None):
